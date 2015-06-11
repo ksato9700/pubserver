@@ -20,7 +20,7 @@ app.use methodOverride()
 
 app.route api_root + '/books'
   .get (req, res, next)->
-    res.sendStatus(501)
+    res.json([4681, 4682, 4872])
 
 app.route api_root + '/books/:book_id'
   .get (req, res, next)->
@@ -35,6 +35,8 @@ app.route api_root + '/books/:book_id/content'
   .get (req, res, next)->
     res.sendFile req.params.book_id + '.' + req.query.format,
       root: __dirname + '/../books/'
+      headers:
+        'Content-Type':'text/plain; charset=shift_jis' # todo txt only
     , (err)->
       if err
         console.log err
