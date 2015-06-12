@@ -5,6 +5,7 @@ express = require 'express'
 morgan = require 'morgan'
 bodyParser = require 'body-parser'
 methodOverride = require 'method-override'
+compression = require 'compression'
 
 app = express();
 
@@ -17,6 +18,7 @@ app.use bodyParser.urlencoded
   extended: false
 app.use bodyParser.json()
 app.use methodOverride()
+app.use compression()
 
 app.route api_root + '/books'
   .get (req, res, next)->
