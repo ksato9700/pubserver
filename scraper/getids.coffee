@@ -42,6 +42,7 @@ MongoClient.connect mongo_url, (err, db)->
       if err
         cb err
       async.map results, (result, cb2)->
+        result.id = parseInt(result.id)
         collection.update {id: result.id}, result, {upsert: true}, cb2
       , (err, results2)->
         if err
