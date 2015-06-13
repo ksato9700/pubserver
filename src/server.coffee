@@ -34,7 +34,11 @@ app.use compression()
 #
 app.route api_root + '/books'
   .get (req, res, next)->
-    app.my.books.find {}, {_id: 0, author: 0}, (err, items)->
+    query = {}
+    if req.query.name
+      query['title.name'] = req.query.name
+      console.log query
+    app.my.books.find query, {_id: 0, author: 0}, (err, items)->
       items.toArray (err, docs)->
         if err
           console.log err
@@ -72,7 +76,10 @@ app.route api_root + '/books/:book_id/content'
 #
 app.route api_root + '/persons'
   .get (req, res, next)->
-    app.my.persons.find {}, {_id: 0, author: 0}, (err, items)->
+    query = {}
+    if req.query.name
+      query.name = req.query.name
+    app.my.persons.find query, {_id: 0}, (err, items)->
       items.toArray (err, docs)->
         if err
           console.log err
@@ -96,7 +103,10 @@ app.route api_root + '/persons/:person_id'
 #
 app.route api_root + '/workers'
   .get (req, res, next)->
-    app.my.workers.find {}, {_id: 0, author: 0}, (err, items)->
+    query = {}
+    if req.query.name
+      query.name = req.query.name
+    app.my.workers.find query, {_id: 0}, (err, items)->
       items.toArray (err, docs)->
         if err
           console.log err
