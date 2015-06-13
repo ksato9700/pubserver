@@ -29,6 +29,9 @@ app.use bodyParser.json()
 app.use methodOverride()
 app.use compression()
 
+#
+# books
+#
 app.route api_root + '/books'
   .get (req, res, next)->
     app.my.books.find {}, {_id: 0, author: 0}, (err, items)->
@@ -64,6 +67,55 @@ app.route api_root + '/books/:book_id/content'
       res.set 'Content-Type', content_type[ext] || 'application/octet-stream'
       res.send result
 
+#
+# persons
+#
+app.route api_root + '/persons'
+  .get (req, res, next)->
+    app.my.persons.find {}, {_id: 0, author: 0}, (err, items)->
+      items.toArray (err, docs)->
+        if err
+          console.log err
+          return res.status(500).end()
+        else
+          res.json docs
+
+app.route api_root + '/persons/:person_id'
+  .get (req, res, next)->
+    person_id = parseInt req.params.person_id
+    app.my.persons.findOne {id: person_id}, {_id: 0}, (err, doc)->
+      if err
+        console.log err
+        return res.status(404).end()
+      else
+        console.log doc
+        res.json doc
+
+#
+# workers
+#
+app.route api_root + '/workers'
+  .get (req, res, next)->
+    app.my.workers.find {}, {_id: 0, author: 0}, (err, items)->
+      items.toArray (err, docs)->
+        if err
+          console.log err
+          return res.status(500).end()
+        else
+          res.json docs
+
+app.route api_root + '/workers/:worker_id'
+  .get (req, res, next)->
+    worker_id = parseInt req.params.worker_id
+    app.my.workers.findOne {id: worker_id}, {_id: 0}, (err, doc)->
+      if err
+        console.log err
+        return res.status(404).end()
+      else
+        console.log doc
+        res.json doc
+
+
 MongoClient.connect mongo_url, (err, db)->
   if err
     console.log err
@@ -73,5 +125,7 @@ MongoClient.connect mongo_url, (err, db)->
   app.my.db = db
   app.my.books = db.collection('books')
   app.my.authors = db.collection('authors')
+  app.my.persons = db.collection('persons')
+  app.my.workers = db.collection('workers')
   app.listen port, ->
     console.log "Magic happens on port #{port}"
