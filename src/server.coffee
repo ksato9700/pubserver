@@ -1,12 +1,16 @@
 #
 # Copyright 2015 Kenichi Sato
 #
+fs = require 'fs'
 express = require 'express'
 morgan = require 'morgan'
 bodyParser = require 'body-parser'
 methodOverride = require 'method-override'
 compression = require 'compression'
+multer = require 'multer'
 mongodb = require 'mongodb'
+AdmZip = require 'adm-zip'
+yaml = require 'js-yaml'
 
 MongoClient = mongodb.MongoClient
 GridStore = mongodb.GridStore
@@ -26,14 +30,49 @@ app.use morgan 'dev'
 app.use bodyParser.urlencoded
   extended: false
 app.use bodyParser.json()
+app.use multer
+  onError: (error, next)->
+    console.log err
+    next(error)
+  # onFileUploadStart: (file, req, res)->
+  #   console.log "#{file.fieldname} is starting ..."
+  # onFileUploadData: (file, data, req, res)->
+  #   console.log "#{data.length} of #{file.fieldname} arrived"
+  # onFileUploadComplete: (file, req, res)->
+  #   console.log "#{file.fieldname} uploaded to #{file.path}"
 app.use methodOverride()
 app.use compression()
 
 #
 # books
 #
+check_archive = (path, cb)->
+  # check aozora json
+  try
+    data = fs.readFileSync path + 'aozora.json'
+  catch err
+    if err.code == 'ENOENT'
+      cb "Cannot find aozora.json\n"
+    else
+      cb err
+    return
+
+  textpath = path + 'aozora.txt'
+  if not fs.existsSync textpath
+    cb "Cannot find aozora.txt\n"
+    return
+
+  console.log data
+  bookobj = yaml.safeLoad data
+  console.log bookobj
+  cb null, bookobj, textpath
+
+upload_content = (db, book_id, source_file, cb)->
+  gs = new GridStore db, book_id, "#{book_id}.txt", 'w'
+  gs.writeFile source_file, cb
+
 app.route api_root + '/books'
-  .get (req, res, next)->
+  .get (req, res)->
     query = {}
     if req.query.name
       query['title.name'] = req.query.name
@@ -45,9 +84,32 @@ app.route api_root + '/books'
           return res.status(500).end()
         else
           res.json docs
+  .post (req, res)->
+    pkg = req.files.package
+    if not pkg
+      return res.sendStatus 400
+    # console.log pkg
+    zip = new AdmZip pkg.path
+    path = process.env.TMPDIR + '/' + pkg.name.split('.')[0] + '-unzip/'
+    zip.extractAllTo path
+    check_archive path, (err, bookobj, source_file)->
+      if err
+        return res.status(400).send(err)
+      book_id = bookobj.id
+      app.my.books.update {id: book_id}, bookobj, {upsert: true}, (err, doc)->
+        if err
+          console.log err
+          return res.sendStatus 500
+        upload_content app.my.db, book_id, source_file, (err)->
+          console.log err
+          if err
+            console.log err
+            return res.sendStatus 500
+          res.location "/books/#{book_id}"
+          res.sendStatus 201
 
 app.route api_root + '/books/:book_id'
-  .get (req, res, next)->
+  .get (req, res)->
     book_id = parseInt req.params.book_id
     app.my.books.findOne {id: book_id}, {_id: 0}, (err, doc)->
       if err
@@ -61,7 +123,7 @@ content_type =
   'txt': 'text/plain; charset=shift_jis'
 
 app.route api_root + '/books/:book_id/content'
-  .get (req, res, next)->
+  .get (req, res)->
     book_id = req.params.book_id
     ext = req.query.format
     GridStore.read app.my.db, "#{book_id}.#{ext}", (err, result)->
@@ -75,7 +137,7 @@ app.route api_root + '/books/:book_id/content'
 # persons
 #
 app.route api_root + '/persons'
-  .get (req, res, next)->
+  .get (req, res)->
     query = {}
     if req.query.name
       query.name = req.query.name
@@ -88,7 +150,7 @@ app.route api_root + '/persons'
           res.json docs
 
 app.route api_root + '/persons/:person_id'
-  .get (req, res, next)->
+  .get (req, res)->
     person_id = parseInt req.params.person_id
     app.my.persons.findOne {id: person_id}, {_id: 0}, (err, doc)->
       if err
@@ -102,7 +164,7 @@ app.route api_root + '/persons/:person_id'
 # workers
 #
 app.route api_root + '/workers'
-  .get (req, res, next)->
+  .get (req, res)->
     query = {}
     if req.query.name
       query.name = req.query.name
@@ -115,7 +177,7 @@ app.route api_root + '/workers'
           res.json docs
 
 app.route api_root + '/workers/:worker_id'
-  .get (req, res, next)->
+  .get (req, res)->
     worker_id = parseInt req.params.worker_id
     app.my.workers.findOne {id: worker_id}, {_id: 0}, (err, doc)->
       if err
