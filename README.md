@@ -44,7 +44,11 @@ curl http://localhost:5000/api/v0.1/books/{book_id}/content?format=txt
 ```
 
 #### 本の情報をアップロード
-(To be written)
+```
+curl -Fpackage=@{package_file} http://localhost:5000/api/v0.1/books
+```
+
+`package_file`はaozora.txtとaozora.jsonが含まれるzipファイル。
 
 #### 人物情報のリストの取得
 ```
@@ -71,4 +75,11 @@ curl http://localhost:5000/api/v0.1/workers/{worker_id}
 
 ## DBにデータ登録するためのスクリプト
 
-(To be written...)
+#### 人物情報、工作員情報取得
+
+http//reception<span></span>.aozora.gr.jp/{pidlist|widlist}.php からダウンロードしたHTMLファイルをscrapingしてDBに投入。結果は上記のAPIから取得できる。
+
+```
+npm install -g coffee
+coffee scraper/getids.coffee
+```
