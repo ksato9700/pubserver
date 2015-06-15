@@ -1,0 +1,49 @@
+#%RAML 0.8
+title: publishing public server
+baseUri: http://pubserver-master.herokuapp.com/api/{version}
+#baseUri: http://localhost:8000/api/{version}
+version: v0.1
+mediaType: application/json
+/books:
+  get:
+    description: get a list of books
+    queryParameters:
+      name:
+        description: filter by name
+  post:
+    description: register a book
+  /{book_id}:
+    get:
+      description: get a book
+    /content:
+      get:
+        description: get contents of a book
+        queryParameters:
+          format:
+            enum:
+              - txt
+              - html
+              - epub
+              - archive
+/persons:
+  get:
+    description: get a list of persons
+    queryParameters:
+      name:
+        description: filter by name
+  post:
+    description: register a person
+  /{person_id}:
+    get:
+      description: get a person
+/workers:
+  get:
+    description: get a list of workers
+    queryParameters:
+      name:
+        description: filter by name
+  post:
+    description: register a worker
+  /{worker_id}:
+    get:
+      description: get a worker
