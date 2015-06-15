@@ -87,7 +87,7 @@ app.route api_root + '/books'
   .post (req, res)->
     pkg = req.files.package
     if not pkg
-      return res.sendStatus 400
+      return res.status(400).send "parameter package is not specified"
     # console.log pkg
     zip = new AdmZip pkg.path
     path = process.env.TMPDIR + '/' + pkg.name.split('.')[0] + '-unzip/'
