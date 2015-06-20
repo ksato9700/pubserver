@@ -16,7 +16,8 @@
     "method-override": "~2.3.3",
     "mongodb": "^2.0.33",
     "morgan": "~1.5.3",
-    "multer": "^0.1.8"
+    "multer": "^0.1.8",
+    "nodegit": "^0.4.1"
   },
   "devDependencies": {
     "grunt": "^0.4.5",
