@@ -5,6 +5,9 @@ request = require 'request'
 async = require 'async'
 git_utils = require './git_utils'
 
+iconv = require 'iconv'
+sjis = new iconv.Iconv 'UTF-8', 'Shift_JIS'
+
 BITBUCKET_APIBASE = "https://api.bitbucket.org/2.0"
 BITBUCKET_USER = process.env.AOZORA_BITBUCKET_USER
 BITBUCKET_PASS = process.env.AOZORA_BITBUCKET_PASS
@@ -16,6 +19,17 @@ exports.init_repo = (title, author, book_id, is_private, cb)->
     return
 
   repo_url = BITBUCKET_APIBASE + "/repositories/#{BITBUCKET_USER}/#{book_id}"
+
+  init_files =
+    'aozora.json':
+      JSON.stringify
+        id: book_id
+        author:
+          name: author
+        title:
+          name: title
+    'head.txt':
+      sjis.convert "#{title}\r\n#{author}"
 
   r = request.defaults
     auth:
@@ -38,7 +52,7 @@ exports.init_repo = (title, author, book_id, is_private, cb)->
       async.some body.links.clone, (entry, cb2)->
         if entry.name == 'https'
           git_utils.set_credential BITBUCKET_USER, BITBUCKET_PASS, BITBUCKET_EMAIL
-          git_utils.setup_repo entry.href, book_id, (repo)->
+          git_utils.setup_repo entry.href, book_id, init_files, (repo)->
             cb2 true
         else
           cb2 false

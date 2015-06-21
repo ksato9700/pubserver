@@ -2,6 +2,10 @@
 # Copyright 2015 Kenichi Sato
 #
 Git = require 'nodegit'
+path = require 'path'
+promisify = require 'promisify-node'
+fse = promisify require 'fs-extra'
+Promise = require 'nodegit-promise'
 
 remote_callbacks = null
 the_sig = null
@@ -19,16 +23,24 @@ exports.set_credential = (user, pass, email)->
       Git.Cred.userpassPlaintextNew user, pass
   the_sig = Git.Signature.now user, email
 
-exports.setup_repo = (origin_url, book_id, cb)->
+exports.setup_repo = (origin_url, book_id, initial_files, cb)->
   #
   # make initial commit
   #
   open_or_clone "repo/#{book_id}", origin_url
   .then (repo)->
     if repo.isEmpty()
-      repo.index()
+      repo.openIndex()
       .then (index)->
-        index.writeTree()
+        filenames = Object.keys initial_files
+        Promise.all filenames.map (filename)->
+          fse.writeFile path.join(repo.workdir(), filename), initial_files[filename]
+        .then ->
+          index.addAll()
+        .then ->
+          index.write()
+        .then ->
+          index.writeTree()
       .then (oid)->
         Git.Tree.lookup repo, oid
       .then (tree)->
