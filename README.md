@@ -49,6 +49,11 @@ curl http://localhost:5000/api/v0.1/books/{book_id}
 curl http://localhost:5000/api/v0.1/books/{book_id}/content?format=txt
 ```
 
+#### 本の中身をhtmlで取得
+```
+curl http://localhost:5000/api/v0.1/books/{book_id}/content?format=html
+```
+
 #### 本の情報をアップロード
 ```
 curl -Fpackage=@{package_file} http://localhost:5000/api/v0.1/books
