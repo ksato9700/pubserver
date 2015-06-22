@@ -126,14 +126,23 @@ content_type =
 
 app.route api_root + '/books/:book_id/content'
   .get (req, res)->
-    book_id = req.params.book_id
+    book_id = parseInt req.params.book_id
     ext = req.query.format
-    GridStore.read app.my.db, "#{book_id}.#{ext}", (err, result)->
-      if err
-        console.log err
-        return res.status(404).end()
-      res.set 'Content-Type', content_type[ext] || 'application/octet-stream'
-      res.send result
+    if ext == 'html'
+      app.my.books.findOne {book_id: book_id}, {_id: 0, html_url: 1}, (err, doc)->
+        if err
+          console.log err
+          return res.status(404).end()
+        else
+          console.log 'doc', doc
+          res.redirect doc.html_url
+    else
+      GridStore.read app.my.db, "#{book_id}.#{ext}", (err, result)->
+        if err
+          console.log err
+          return res.status(404).end()
+        res.set 'Content-Type', content_type[ext] || 'application/octet-stream'
+        res.send result
 
 #
 # drafts
