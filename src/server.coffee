@@ -113,7 +113,7 @@ app.route api_root + '/books'
 app.route api_root + '/books/:book_id'
   .get (req, res)->
     book_id = parseInt req.params.book_id
-    app.my.books.findOne {id: book_id}, {_id: 0}, (err, doc)->
+    app.my.books.findOne {book_id: book_id}, {_id: 0}, (err, doc)->
       if err
         console.log err
         return res.status(404).end()

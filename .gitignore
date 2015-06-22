@@ -1,3 +1,6 @@
 node_modules
 src/test_*
 lib/test_*
+*.zip
+*.csv
+repo/
