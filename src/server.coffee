@@ -11,6 +11,8 @@ multer = require 'multer'
 mongodb = require 'mongodb'
 AdmZip = require 'adm-zip'
 yaml = require 'js-yaml'
+request = require 'request'
+zlib = require 'zlib'
 
 repo_backend = require './repo_bitbucket'
 
@@ -73,6 +75,19 @@ upload_content = (db, book_id, source_file, cb)->
   gs = new GridStore db, book_id, "#{book_id}.txt", 'w'
   gs.writeFile source_file, cb
 
+upload_content_data = (db, book_id, source, cb)->
+  gs = new GridStore db, book_id, "#{book_id}.txt", 'w'
+  gs.open (err, gs)->
+    if err
+      cb err
+      return
+    gs.write source, (err, gs)->
+        if err
+          cb err
+          return
+        gs.close (err)->
+          cb err
+
 app.route api_root + '/books'
   .get (req, res)->
     query = {}
@@ -124,25 +139,61 @@ app.route api_root + '/books/:book_id'
 content_type =
   'txt': 'text/plain; charset=shift_jis'
 
+get_from_gs = (my, book_id, get_file, cb)->
+  GridStore.read app.my.db, "#{book_id}.txt", (err, result)->
+    if err
+      if get_file
+        get_file my, book_id, (err)->
+          if err
+            cb err
+          else
+            get_from_gs my, book_id, null, cb
+      else
+        cb err
+    else
+      cb null, zlib.inflateSync result
+
+get_zipped = (my, book_id, cb)->
+  my.books.findOne {book_id: book_id}, {text_url: 1}, (err, doc)->
+    if err
+      cb err
+      return
+    request.get doc.text_url,
+      encoding: null
+      headers:
+        'User-Agent': 'Mozilla/5.0'
+        'Accept': '*/*'
+    , (err, res, body)->
+      if err
+        cb err
+        return
+      zip = new AdmZip body
+      entry = zip.getEntries()[0] ## assuming zip has only one text entry
+      data = zip.readFile entry
+      zdata = zlib.deflateSync data
+      upload_content_data my.db, book_id, zdata, (err)->
+        cb err
+
+
 app.route api_root + '/books/:book_id/content'
   .get (req, res)->
     book_id = parseInt req.params.book_id
     ext = req.query.format
     if ext == 'html'
-      app.my.books.findOne {book_id: book_id}, {_id: 0, html_url: 1}, (err, doc)->
+      app.my.books.findOne {book_id: book_id}, {html_url: 1}, (err, doc)->
         if err
           console.log err
           return res.status(404).end()
         else
-          console.log 'doc', doc
           res.redirect doc.html_url
-    else
-      GridStore.read app.my.db, "#{book_id}.#{ext}", (err, result)->
+    else if ext == 'txt'
+      get_from_gs app.my, book_id, get_zipped, (err, result)->
         if err
           console.log err
           return res.status(404).end()
-        res.set 'Content-Type', content_type[ext] || 'application/octet-stream'
-        res.send result
+        else
+          res.set 'Content-Type', content_type[ext] || 'application/octet-stream'
+          res.send result
 
 #
 # drafts
