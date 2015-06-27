@@ -93,8 +93,18 @@ app.route api_root + '/books'
     query = {}
     if req.query.name
       query['title.name'] = req.query.name
-      console.log query
-    app.my.books.find query, {_id: 0, author: 0}, (err, items)->
+    options =
+      sort:
+        release_date: -1
+      fields:
+        _id: 0
+    if req.query.fields
+      req.query.fields.split(',').forEach (a)->
+        options.fields[a] = 1
+    if req.query.limit
+      options.limit = parseInt req.query.limit
+    # console.log options
+    app.my.books.find query, options, (err, items)->
       items.toArray (err, docs)->
         if err
           console.log err
