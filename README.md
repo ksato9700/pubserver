@@ -39,6 +39,8 @@ localhost:5000 でサーバを動かしている前提で。
 curl http://localhost:5000/api/v0.1/books
 ```
 
+追加パラメータ
+
 #### 個別の本の情報の取得
 ```
 curl http://localhost:5000/api/v0.1/books/{book_id}
