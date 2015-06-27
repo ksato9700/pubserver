@@ -4,6 +4,7 @@
 AdmZip = require 'adm-zip'
 parse = require 'csv-parse'
 async = require 'async'
+request = require 'request'
 
 mongodb = require 'mongodb'
 MongoClient = mongodb.MongoClient
@@ -99,16 +100,18 @@ MongoClient.connect mongo_url, (err, db)->
   db = db
   books = db.collection('books')
 
-  zip = AdmZip './' + list_url_pub
-  entries = zip.getEntries()
-  if entries.length != 1
-    return -1
-  buf = zip.readFile entries[0]
-  parse buf, (err, data)->
-    batch = books.initializeUnorderedBulkOp()
-    get_bookobj entry, batch for entry in data[1..]
-
-    batch.execute (err, result)->
-      if err
-        console.log 'err', err
-      db.close()
+  request.get list_url_base + list_url_pub, {encoding: null}, (err, resp, body)->
+    if err
+      return -1
+    zip = AdmZip body
+    entries = zip.getEntries()
+    if entries.length != 1
+      return -1
+    buf = zip.readFile entries[0]
+    parse buf, (err, data)->
+      batch = books.initializeUnorderedBulkOp()
+      get_bookobj entry, batch for entry in data[1..]
+      batch.execute (err, result)->
+        if err
+          console.log 'err', err
+        db.close()
