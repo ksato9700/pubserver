@@ -109,9 +109,18 @@ MongoClient.connect mongo_url, (err, db)->
       return -1
     buf = zip.readFile entries[0]
     parse buf, (err, data)->
-      batch = books.initializeUnorderedBulkOp()
-      get_bookobj entry, batch for entry in data[1..]
-      batch.execute (err, result)->
-        if err
-          console.log 'err', err
-        db.close()
+      books.findOne {}, {fields: {release_date: 1}, sort: {release_date: -1}}, (err, item)->
+        last_release_date = item.release_date
+        updated = data[1..].filter (entry)->
+          release_date = new Date entry[11]
+          return last_release_date < release_date
+        console.log "#{updated.length} entries are updated"
+        if updated.length > 0
+          batch = books.initializeUnorderedBulkOp()
+          get_bookobj entry, batch for entry in updated
+          batch.execute (err, result)->
+            if err
+              console.log 'err', err
+            db.close()
+        else
+          db.close()
