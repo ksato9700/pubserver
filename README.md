@@ -43,6 +43,7 @@ curl http://localhost:5000/api/v0.1/books
  - `name`: タイトル名でのフィルタ
  - `fields`: 取得する属性を指定
  - `limit`: 取得するアイテム数を制限
+ - `after`: release_dateがこの日付よりも新しいモノのみを返す(YYYY-MM-DD)
 
 #### 個別の本の情報の取得
 ```
