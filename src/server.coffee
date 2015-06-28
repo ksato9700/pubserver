@@ -93,6 +93,8 @@ app.route api_root + '/books'
     query = {}
     if req.query.name
       query['title.name'] = req.query.name
+    if req.query.after
+      query['release_date'] = {"$gte": new Date (req.query.after)}
     options =
       sort:
         release_date: -1
@@ -103,7 +105,7 @@ app.route api_root + '/books'
         options.fields[a] = 1
     if req.query.limit
       options.limit = parseInt req.query.limit
-    # console.log options
+    # console.log query, options
     app.my.books.find query, options, (err, items)->
       items.toArray (err, docs)->
         if err
