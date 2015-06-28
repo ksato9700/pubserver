@@ -30,13 +30,19 @@ foreman start web
 * `AOZORA_BITBUCKET_EMAIL` BitBucketアカウントのEmailアドレス
 
 
-## アクセス方法
 
-localhost:5000 でサーバを動かしている前提で。
+## ブラウザからのアクセス
+
+- 新規登録作品のリスト http://pubserver-master.herokuapp.com/books/whatsnew.html
+
+
+## APIアクセス方法
+
+いか、Heroku仮稼働しているプロトタイプサーバのURLです。ローカルで動かす時にはホスト名を "localhost:5000"で適宜読み替えてください。
 
 #### 本のリストの取得
 ```
-curl http://localhost:5000/api/v0.1/books
+curl http://pubserver-master.herokuapp.com/api/v0.1/books
 ```
 
 追加パラメータ
@@ -47,55 +53,62 @@ curl http://localhost:5000/api/v0.1/books
 
 #### 個別の本の情報の取得
 ```
-curl http://localhost:5000/api/v0.1/books/{book_id}
+curl http://pubserver-master.herokuapp.com/api/v0.1/books/{book_id}
 ```
 
 #### 本の中身をテキストで取得
 ```
-curl http://localhost:5000/api/v0.1/books/{book_id}/content?format=txt
+curl http://pubserver-master.herokuapp.com/api/v0.1/books/{book_id}/content?format=txt
 ```
 
 #### 本の中身をhtmlで取得
 ```
-curl http://localhost:5000/api/v0.1/books/{book_id}/content?format=html
+curl http://pubserver-master.herokuapp.com/api/v0.1/books/{book_id}/content?format=html
 ```
 
 #### 本の情報をアップロード
 ```
-curl -Fpackage=@{package_file} http://localhost:5000/api/v0.1/books
+curl -Fpackage=@{package_file} http://pubserver-master.herokuapp.com/api/v0.1/books
 ```
 
 `package_file`はaozora.txtとaozora.jsonが含まれるzipファイル。
 
 #### 人物情報のリストの取得
 ```
-curl http://localhost:5000/api/v0.1/persons
+curl http://pubserver-master.herokuapp.com/api/v0.1/persons
 ```
 
 #### 個別の人物の情報の取得
 ```
-curl http://localhost:5000/api/v0.1/persons/{person_id}
+curl http://pubserver-master.herokuapp.com/api/v0.1/persons/{person_id}
 ```
 
 #### 工作員情報のリストの取得
 ```
-curl http://localhost:5000/api/v0.1/workers
+curl http://pubserver-master.herokuapp.com/api/v0.1/workers
 ```
 
 #### 個別の工作員の情報の取得
 ```
-curl http://localhost:5000/api/v0.1/workers/{worker_id}
+curl http://pubserver-master.herokuapp.com/api/v0.1/workers/{worker_id}
 ```
 
 #### 本の入力開始(git repositoryの作成)
 ```
-curl -X POST -H 'Content-type: application/json' -d '{"title": {title}, "author": {author}, "id":{book_id}, "private": {true|false}}' http://localhost:5000/api/v0.1/drafts
+curl -X POST -H 'Content-type: application/json' -d '{"title": {title}, "author": {author}, "id":{book_id}, "private": {true|false}}' http://pubserver-master.herokuapp.com/api/v0.1/drafts
 ```
 
 ## 仕様
-* [RAML](http://raml.org/)で記述してみたAPI仕様が[ここ](./pubserver.raml)にあります
+* [RAML](http://raml.org/)で記述してみたAPI仕様が[ここ](./spec/pubserver.raml)にあります
 
 ## DBにデータ登録するためのスクリプト
+
+#### 書籍情報取得
+https://github.com/aozorabunko/aozorabunko/raw/master/index_pages/list_person_all_extended_utf8.zip をダウンロード、そこに含まれるCSVファイルから情報取得し、DBに投入。
+```
+npm install -g coffee
+coffee scraper/getbooks.coffee
+```
 
 #### 人物情報、工作員情報取得
 
