@@ -77,21 +77,42 @@ person_extended_attrs = [
   ]
 
 
-get_bookobj = (entry, batch)->
-  obj = {}
+role_map =
+  '著者': 'authors'
+  '翻訳者': 'translators'
+  '編者': 'editors'
+  '校訂者': 'revisers'
+
+get_bookobj = (entry, cb)->
+  book = {}
+  role = null
+  person = {}
+
   person_extended_attrs.forEach (e,i)->
     value = entry[i]
     if value != ''
       if e in ['book_id', 'person_id', 'text_updated', 'html_updated']
         value = parseInt value
-      if e in ['release_date', 'last_modified', 'date_of_birth', 'date_of_death',
-               'text_last_modified', 'html_last_modified']
-        value = new Date value
-      if e in ['copyright', 'author_copyright']
+      else if e in ['copyright', 'author_copyright']
         value = value != 'なし'
-      obj[e] = value
-  batch.find({book_id: obj['book_id']}).upsert().replaceOne obj
+      else if e in ['release_date', 'last_modified', 'date_of_birth', 'date_of_death',
+                    'text_last_modified', 'html_last_modified']
+        value = new Date value
 
+      if e in ['person_id', 'first_name', 'last_name', 'last_name_yomi', 'first_name_yomi',
+               'last_name_sort', 'first_name_sort', 'last_name_roman', 'first_name_roman',
+               'date_of_birth', 'date_of_death', 'author_copyright']
+        person[e] = value
+        return
+      else if e is 'role'
+        role = role_map[value]
+        if not role
+          console.log value
+        return
+
+      book[e] = value
+
+  cb book, role, person
 
 MongoClient.connect mongo_url, (err, db)->
   if err
@@ -99,7 +120,10 @@ MongoClient.connect mongo_url, (err, db)->
     return -1
   db = db
   books = db.collection('books')
+  persons = db.collection('persons')
 
+  # list_url_base = 'http://localhost:8000/'
+  # list_url_pub = 'list_person_all_extended_utf8_short.zip'
   request.get list_url_base + list_url_pub, {encoding: null}, (err, resp, body)->
     if err
       return -1
@@ -110,17 +134,49 @@ MongoClient.connect mongo_url, (err, db)->
     buf = zip.readFile entries[0]
     parse buf, (err, data)->
       books.findOne {}, {fields: {release_date: 1}, sort: {release_date: -1}}, (err, item)->
-        last_release_date = item.release_date
+        if err or item is null
+          last_release_date = new Date '1970-01-01'
+        else
+          last_release_date = item.release_date
         updated = data[1..].filter (entry)->
           release_date = new Date entry[11]
           return last_release_date < release_date
         console.log "#{updated.length} entries are updated"
         if updated.length > 0
-          batch = books.initializeUnorderedBulkOp()
-          get_bookobj entry, batch for entry in updated
-          batch.execute (err, result)->
+          books_batch_list = {}
+          persons_batch_list = {}
+          async.eachSeries updated, (entry, cb)->
+            get_bookobj entry, (book, role, person)->
+              if not books_batch_list[book.book_id]
+                books_batch_list[book.book_id] = book
+              if not books_batch_list[book.book_id][role]
+                books_batch_list[book.book_id][role] = []
+              books_batch_list[book.book_id][role].push
+                person_id: person.person_id
+                last_name: person.last_name
+                first_name: person.first_name
+              if not persons_batch_list[person.person_id]
+                persons_batch_list[person.person_id] = person
+              cb null
+          , (err)->
             if err
-              console.log 'err', err
-            db.close()
+              console.log err
+              return -1
+
+            async.parallel [
+              (cb)->
+                books_batch = books.initializeUnorderedBulkOp()
+                for book_id, book of books_batch_list
+                  books_batch.find({book_id: book_id}).upsert().updateOne book
+                books_batch.execute cb
+              ,(cb)->
+                persons_batch = persons.initializeUnorderedBulkOp()
+                for person_id, person of persons_batch_list
+                  persons_batch.find({person_id: person_id}).upsert().updateOne person
+                persons_batch.execute cb
+            ], (err, result)->
+              if err
+                console.log 'err', err
+              db.close()
         else
           db.close()

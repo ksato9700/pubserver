@@ -14,15 +14,19 @@ extract_meta = function (json_data) {
       item.title = item.title + "</br>" + item.subtitle;
     }
     // author
-    item.author = item.last_name + " " + item.first_name
+    authors = item.authors.map(function(author) {
+      return author.last_name + " " + author.first_name;
+    });
+    item.author = authors.join(", ");
 
+    item.proofing = item.proofing || ""
     return item;
   });
 }
 
 whatsnew = function (start_date) {
   $.ajax({
-    url:'/api/v0.1/books?fields=release_date,title,subtitle,card_url,first_name,last_name,input,proofing&after='+start_date,
+    url:'/api/v0.1/books?fields=release_date,title,subtitle,card_url,authors,input,proofing&after='+start_date,
     dataType: 'json',
     success: function(json_data) {
       tbl = $('#tbl').columns({
