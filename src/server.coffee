@@ -29,15 +29,13 @@ app = express();
 version = 'v0.1'
 api_root = '/api/' + version
 
+upload = multer()
+
 app.use express.static __dirname + '/../public'
 app.use morgan 'dev'
 app.use bodyParser.urlencoded
   extended: false
 app.use bodyParser.json()
-app.use multer
-  onError: (error, next)->
-    console.log err
-    next(error)
   # onFileUploadStart: (file, req, res)->
   #   console.log "#{file.fieldname} is starting ..."
   # onFileUploadData: (file, data, req, res)->
